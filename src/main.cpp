@@ -16,53 +16,76 @@ class Boid
 {
 private:
     // Position
-    Vector2 position;
+    Vector3 position;
 
     // Velocity
-    Vector2 velocity;
+    Vector3 velocity;
 
     float radius = BoidRadius;
     float maxSpeed = MaxBoidSpeed;
 
+    //int flapTimer;
+    //int flapDelay;
+
     Color color = BoidColor;
 
 
-    bool canDetectBoid(Vector2 otherBoidPosition)
+    bool canDetectBoid(Vector3 otherBoidPosition)
     {
-        Vector2 vectorToBoid = Vector2Subtract(otherBoidPosition, position);
+        Vector3 vectorToBoid = Vector3Subtract(otherBoidPosition, position);
 
-        float diffAngle = Vector2Angle(vectorToBoid, velocity);
+        float diffAngle = Vector3Angle(vectorToBoid, velocity);
 
         diffAngle = fabsf(RAD2DEG * diffAngle);
 
-        if (diffAngle > MaxDetectionAngle) return false;
-
-
-        return true;
+        return (diffAngle <= MaxDetectionAngle);
     }
 
 public:
     // Constructors
     Boid()
     {
-        position = Vector2{ WIDTH/2.0f, HEIGHT/2.0f };
-        velocity = Vector2{0, 0};
+        position = Vector3{ WIDTH/2.0f, HEIGHT/2.0f, 0.0f };
+        velocity = Vector3{0, 0, 0};
     }
 
-    Boid(Vector2 pos, Vector2 vel, float r, float maxSp, Color c) : position(pos), velocity(vel), radius(r), maxSpeed(maxSp), color(c) {};
+    Boid(Vector3 pos, Vector3 vel, float r, float maxSp, Color c) : position(pos), velocity(vel), radius(r), maxSpeed(maxSp), color(c) {};
 
     // Function to draw a boid
     void drawBoid() const
     {
-        DrawCircle(position.x, position.y, radius, color);
+        float wingsLength = WingsLen;
+        float frontLength = FrontLen;
+
+        float ZFactor = -position.z / 140 + 1;
+
+        wingsLength += ZFactor;
+        frontLength += ZFactor;
+
+
+        Vector2 normalizedVelocity = Vector2Normalize((Vector2){velocity.x, velocity.y});
+
+        Vector2 perpendicularVector = Vector2{-normalizedVelocity.y, normalizedVelocity.x};
+
+        Vector2 scaledPerpVector = Vector2Scale(perpendicularVector, wingsLength);
+
+        Vector2 leftSide = Vector2Subtract((Vector2){position.x, position.y}, scaledPerpVector);
+        Vector2 rightSide = Vector2Add((Vector2){position.x, position.y}, scaledPerpVector);
+
+
+        Vector2 frontSide = (Vector2Add((Vector2){position.x, position.y}, Vector2Scale(normalizedVelocity, frontLength)));
+
+
+        DrawTriangle(rightSide, frontSide, leftSide, color);
+        DrawCircle(position.x, position.y, TailLen, TailColor);
     }
 
 
     void applyBoidAlgorithmRules(const std::vector<Boid>& boids)
     {
-        Vector2 centerOfMass = Vector2 {0.0f, 0.0f};
-        Vector2 separationForce = Vector2 {0.0f, 0.0f};
-        Vector2 averageVelocity = Vector2 {0.0f, 0.0f};
+        Vector3 centerOfMass = Vector3 {0.0f, 0.0f, 0.0f};
+        Vector3 separationForce = Vector3 {0.0f, 0.0f, 0.0f};
+        Vector3 averageVelocity = Vector3 {0.0f, 0.0f, 0.0f};
 
         int cohesionRangeCount = 0;
         int separationRangeCount = 0;
@@ -71,7 +94,7 @@ public:
         for (const auto& otherBoid : boids)
         {
 
-            float distance = Vector2Distance(otherBoid.position, position);
+            float distance = Vector3Distance(otherBoid.position, position);
 
             if (distance == 0) continue;
 
@@ -80,11 +103,11 @@ public:
             {
                 separationRangeCount++;
 
-                Vector2 oppositeForceExerted = Vector2Subtract(position, otherBoid.position);
+                Vector3 oppositeForceExerted = Vector3Subtract(position, otherBoid.position);
 
-                oppositeForceExerted = Vector2Scale(oppositeForceExerted, 1.0f / distance);
+                oppositeForceExerted = Vector3Scale(oppositeForceExerted, 1.0f / distance);
 
-                separationForce = Vector2Add(separationForce, oppositeForceExerted);
+                separationForce = Vector3Add(separationForce, oppositeForceExerted);
             }
 
             // The detection angle of a boid can be limited to only detect boids in the direction it is heading (for more realistic simulations)
@@ -93,7 +116,7 @@ public:
             // Rule 1: Coherence
             if (distance <= BoidCoherenceRadius)
             {
-                centerOfMass = Vector2Add(centerOfMass, otherBoid.position);
+                centerOfMass = Vector3Add(centerOfMass, otherBoid.position);
                 cohesionRangeCount++;
             }
 
@@ -102,7 +125,7 @@ public:
             {
                 alignmentRangeCount++;
 
-                averageVelocity = Vector2Add(averageVelocity, otherBoid.velocity);
+                averageVelocity = Vector3Add(averageVelocity, otherBoid.velocity);
             }
         }
 
@@ -111,25 +134,25 @@ public:
         {
             centerOfMass = centerOfMass / cohesionRangeCount;
 
-            Vector2 cohesionOffset = (Vector2Subtract(centerOfMass, position)/ CoherenceStrength);
+            Vector3 cohesionOffset = (Vector3Subtract(centerOfMass, position)/ CoherenceStrength);
 
-            velocity = Vector2Add(velocity, cohesionOffset);
+            velocity = Vector3Add(velocity, cohesionOffset);
         }
 
         if (separationRangeCount > 0)
         {
-            Vector2 separationOffset = Vector2Scale(separationForce, SeparationStrength);
+            Vector3 separationOffset = Vector3Scale(separationForce, SeparationStrength);
 
-            velocity = Vector2Add(velocity, separationOffset);
+            velocity = Vector3Add(velocity, separationOffset);
         }
 
         if (alignmentRangeCount > 0)
         {
             averageVelocity = averageVelocity / alignmentRangeCount;
 
-            Vector2 alignmentOffset = Vector2Subtract(averageVelocity, velocity);
+            Vector3 alignmentOffset = Vector3Subtract(averageVelocity, velocity);
 
-            velocity = Vector2Add(velocity, Vector2Scale(alignmentOffset, AlignmentStrength));
+            velocity = Vector3Add(velocity, Vector3Scale(alignmentOffset, AlignmentStrength));
         }
     }
 
@@ -139,15 +162,15 @@ public:
     {
         applyBoidAlgorithmRules(boids);
 
-        float currentSpeed = Vector2Length(velocity);
+        float currentSpeed = Vector3Length(velocity);
 
         if (currentSpeed > maxSpeed)
         {
-            velocity = Vector2Scale(Vector2Normalize(velocity), maxSpeed);
+            velocity = Vector3Scale(Vector3Normalize(velocity), maxSpeed);
         }
         else if (currentSpeed < MinBoidSpeed)
         {
-            velocity = Vector2Scale(Vector2Normalize(velocity), MinBoidSpeed);
+            velocity = Vector3Scale(Vector3Normalize(velocity), MinBoidSpeed);
         }
 
 
@@ -169,6 +192,15 @@ public:
         {
             velocity.y += -BoidTurnRate;
         }
+
+        if (position.z < 0)
+        {
+            velocity.z += BoidTurnRate;
+        }
+        else if (position.z > DEPTH)
+        {
+            velocity.z -= BoidTurnRate;
+        }
         // End of bounds check
 
         position.x += velocity.x * dt;
@@ -188,11 +220,22 @@ void drawBoids(const std::vector<Boid>& boids)
 
 
 
+
+
 int main()
 {
+    int wingFlapTimer = 0;
+
     srand(time(nullptr));
 
     InitWindow(WIDTH, HEIGHT, "Boids");
+
+    Texture2D skyImage = LoadTexture("..\\Images\\BoidSky.png");
+
+    // Info to draw sky texture
+    Rectangle sourceRect = { 0.0f, 0.0f, (float)skyImage.width, (float)skyImage.height };
+    Rectangle destRect = { 0.0f, 0.0f, (float)WIDTH, (float)HEIGHT };
+    Vector2 origin = { 0.0f, 0.0f };
 
     SetTargetFPS(60);
 
@@ -202,14 +245,18 @@ int main()
     {
         float boidMaxSp = MaxBoidSpeed + (float)(rand() % (int)(MaxBoidSpeedRange));
 
-        std::cout << boidMaxSp << std::endl;
-        boids.emplace_back(Boid(Vector2{(float)(rand() % (WIDTH - (int)BoidRadius)), (float)(rand() % HEIGHT)},              // Random position
-                                Vector2{(float)(((rand() % 2 == 0 ? 1 : -1) * (rand() + (int)MinBoidSpeed)) % (int)boidMaxSp),         (float)(((rand() % 2 == 0 ? 1 : -1) * (rand() + (int)MinBoidSpeed)) % (int)boidMaxSp)},   // Random velocity
+        //std::cout << boidMaxSp << std::endl;
+        boids.emplace_back(Boid(Vector3{(float)(rand() % (WIDTH - (int)BoidRadius)), (float)(rand() % HEIGHT), (float(rand() % DEPTH))},              // Random position
+                                Vector3{(float)(((rand() % 2 == 0 ? 1 : -1) * (rand() + (int)MinBoidSpeed)) % (int)boidMaxSp),
+                                        (float)(((rand() % 2 == 0 ? 1 : -1) * (rand() + (int)MinBoidSpeed)) % (int)boidMaxSp),
+                                        (float)(((rand() % 2 == 0 ? 1 : -1) * (rand() + (int)MinBoidSpeed)) % (int)boidMaxSp)},   // Random velocity
                                 BoidRadius,
                                 boidMaxSp,
                                 BoidColor)
                           );
     }
+
+
 
     while (!WindowShouldClose())
     {
@@ -218,6 +265,8 @@ int main()
 
         BeginDrawing();
         ClearBackground(sky);
+
+        DrawTexturePro(skyImage, sourceRect, destRect, origin, 0.0f, WHITE);
 
         for (auto& boid : boids)
         {
@@ -228,5 +277,10 @@ int main()
 
         EndDrawing();
     }
+
+    UnloadTexture(skyImage);
+    CloseWindow();
+
+    return 0;
 
 }
