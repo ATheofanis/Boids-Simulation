@@ -2,6 +2,8 @@
 
 This is a C++ implementation of the Boids algorithm to simulate flocking behavior.
 
+![Boids Simulation](BoidSimulation.gif)
+
 ## Details
 
 Each boid adheres to three core rules:
