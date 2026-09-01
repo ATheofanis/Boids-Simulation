@@ -24,8 +24,12 @@ private:
     float radius = BoidRadius;
     float maxSpeed = MaxBoidSpeed;
 
-    //int flapTimer;
-    //int flapDelay;
+    float wingsLen = WingsLen;
+
+    int flapTimer = 5 + rand() % 10;
+    int flapDelay = 10 + rand() % 20;
+
+    bool flap = false;
 
     Color color = BoidColor;
 
@@ -54,7 +58,7 @@ public:
     // Function to draw a boid
     void drawBoid() const
     {
-        float wingsLength = WingsLen;
+        float wingsLength = wingsLen;
         float frontLength = FrontLen;
 
         float ZFactor = -position.z / 140 + 1;
@@ -157,9 +161,33 @@ public:
     }
 
 
+    void flapWings()
+    {
+        if (flapTimer == flapDelay)
+        {
+            // If the wings havent flapped then flap them
+            if (flap == false)
+            {
+                wingsLen = wingsLen * 0.7;
+            }
+            else
+            {
+                wingsLen = WingsLen;
+            }
+            flap = !flap;
+            flapTimer = 0;
+        }
+    }
+
 
     void updateBoidPosition(float dt, const std::vector<Boid>& boids)
     {
+        flapTimer++;
+
+        flapWings();
+
+
+
         applyBoidAlgorithmRules(boids);
 
         float currentSpeed = Vector3Length(velocity);
@@ -212,6 +240,7 @@ public:
 
 void drawBoids(const std::vector<Boid>& boids)
 {
+
     for (const auto& boid : boids)
     {
         boid.drawBoid();

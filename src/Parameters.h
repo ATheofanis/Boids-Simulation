@@ -6,7 +6,7 @@
 
 
 // =============== BORDERS ====================
-constexpr int WIDTH = 1500;
+constexpr int WIDTH = 1800;
 constexpr int HEIGHT = 1000;
 constexpr int DEPTH = 360;
 
@@ -15,14 +15,13 @@ constexpr Vector2 CenterOfSimulation = Vector2{(float)(WIDTH/2), (float)(HEIGHT/
 
 
 
-
-inline int BoidCount = 600;  // BOID POPULATION
+inline int BoidCount = 100;  // BOID POPULATION
 
 inline float BoidRadius = 2.5f;  // BOID SIZE
 
 
-inline float WingsLen = 6.0f + 2;
-inline float FrontLen = 4.0f + 2;
+inline float WingsLen = 6.0f + 8;
+inline float FrontLen = 4.0f + 8;
 inline float TailLen = FrontLen / 3;
 
 inline float BoidBoundLimits = BoidRadius * 4 + 50;
